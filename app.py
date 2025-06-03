@@ -143,10 +143,16 @@ def handle_user_input(event, user_state, text):
     """根據用戶當前狀態處理輸入"""
     if user_state.current_state == "product_query":
         handle_product_query(line_bot_api, event.reply_token, text)
+        # 重置用戶狀態
+        user_state.reset()
     elif user_state.current_state == "price_query":
         handle_price_query(line_bot_api, event.reply_token, event.source.user_id, text)
+        # 重置用戶狀態
+        user_state.reset()
     elif user_state.current_state == "product_compare":
         handle_product_compare(line_bot_api, event.reply_token, text)
+        # 重置用戶狀態
+        user_state.reset()
     elif user_state.current_state == "product_recommend_type":
         # 保存裝置類型到上下文
         user_state.set_context("device_type", text)
@@ -156,15 +162,19 @@ def handle_user_input(event, user_state, text):
             event.reply_token,
             TextSendMessage(text=f"請輸入您對{text}的需求和預算：")
         )
+        # 這裡不重置用戶狀態，因為還需要等待用戶輸入需求和預算
     elif user_state.current_state == "product_recommend":
         handle_product_recommend(line_bot_api, event.reply_token, text, event.source.user_id)
+        # 重置用戶狀態
+        user_state.reset()
     elif user_state.current_state == "popular_ranking":
         handle_popular_ranking(line_bot_api, event.reply_token, text)
+        # 重置用戶狀態
+        user_state.reset()
     elif user_state.current_state == "product_review":
         handle_product_review(line_bot_api, event.reply_token, text)
-    
-    # 重置用戶狀態
-    user_state.reset()
+        # 重置用戶狀態
+        user_state.reset()
 
 def get_help_message():
     """返回幫助訊息"""
