@@ -50,7 +50,7 @@ def call_gpt_with_web_search(product1, product2):
     
     # 調用OpenAI API
     response = openai.ChatCompletion.create(
-        model="gpt-4o-search-preview",  # 使用支持網絡搜索的模型
+        model="gpt-4o-mini-search-preview-2025-03-11",  # 使用支持網絡搜索的模型
         messages=[
             {"role": "system", "content": system_message},
             {"role": "user", "content": user_message}

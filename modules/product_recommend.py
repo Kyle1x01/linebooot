@@ -2,11 +2,18 @@ import os
 import openai
 from linebot.models import TextSendMessage
 
-def handle_product_recommend(line_bot_api, reply_token, input_text):
+def handle_product_recommend(line_bot_api, reply_token, input_text, user_id=None):
     """處理產品推薦"""
     try:
+        # 從用戶狀態獲取裝置類型
+        device_type = None
+        if user_id:
+            from app import user_states
+            if user_id in user_states:
+                device_type = user_states[user_id].get_context("device_type")
+        
         # 調用GPT-4.1進行網絡搜索
-        response = call_gpt_with_web_search(input_text)
+        response = call_gpt_with_web_search(input_text, device_type)
         
         # 回覆用戶
         line_bot_api.reply_message(
@@ -20,7 +27,7 @@ def handle_product_recommend(line_bot_api, reply_token, input_text):
             TextSendMessage(text=error_message)
         )
 
-def call_gpt_with_web_search(user_requirements):
+def call_gpt_with_web_search(user_requirements, device_type=None):
     """調用GPT-4.1進行網絡搜索並返回產品推薦"""
     # 設定系統訊息
     system_message = """
@@ -36,11 +43,14 @@ def call_gpt_with_web_search(user_requirements):
     """
     
     # 設定用戶訊息
-    user_message = f"根據以下需求和預算，請推薦適合的3C產品：{user_requirements}"
+    if device_type:
+        user_message = f"請推薦適合的{device_type}，根據以下需求和預算：{user_requirements}"
+    else:
+        user_message = f"根據以下需求和預算，請推薦適合的3C產品：{user_requirements}"
     
     # 調用OpenAI API
     response = openai.ChatCompletion.create(
-        model="gpt-4o-search-preview",  # 使用支持網絡搜索的模型
+        model="gpt-4o-mini-search-preview-2025-03-11",  # 使用支持網絡搜索的模型
         messages=[
             {"role": "system", "content": system_message},
             {"role": "user", "content": user_message}

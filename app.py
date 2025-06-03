@@ -116,10 +116,10 @@ def handle_message(event):
             TextSendMessage(text="請輸入您想比較的兩種裝置型號，以逗號分隔：")
         )
     elif text == "求推薦":
-        user_state.set_state("product_recommend", waiting_for_input=True)
+        user_state.set_state("product_recommend_type", waiting_for_input=True)
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="請輸入您的需求和預算：")
+            TextSendMessage(text="請輸入您想推薦的裝置類型（例如：手機、筆電、耳機等）：")
         )
     elif text == "金榜題名":
         user_state.set_state("popular_ranking", waiting_for_input=True)
@@ -147,8 +147,17 @@ def handle_user_input(event, user_state, text):
         handle_price_query(line_bot_api, event.reply_token, event.source.user_id, text)
     elif user_state.current_state == "product_compare":
         handle_product_compare(line_bot_api, event.reply_token, text)
+    elif user_state.current_state == "product_recommend_type":
+        # 保存裝置類型到上下文
+        user_state.set_context("device_type", text)
+        # 更新狀態為等待需求和預算
+        user_state.set_state("product_recommend", waiting_for_input=True)
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text=f"請輸入您對{text}的需求和預算：")
+        )
     elif user_state.current_state == "product_recommend":
-        handle_product_recommend(line_bot_api, event.reply_token, text)
+        handle_product_recommend(line_bot_api, event.reply_token, text, event.source.user_id)
     elif user_state.current_state == "popular_ranking":
         handle_popular_ranking(line_bot_api, event.reply_token, text)
     elif user_state.current_state == "product_review":
