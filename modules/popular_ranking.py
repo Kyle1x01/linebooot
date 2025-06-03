@@ -40,12 +40,12 @@ def call_gpt_with_web_search(product_type):
     
     # 調用OpenAI API
     response = openai.ChatCompletion.create(
-        model="gpt-4-1106-preview",  # 使用GPT-4.1
+        model="gpt-4o-search-preview",  # 使用支持網絡搜索的模型
         messages=[
             {"role": "system", "content": system_message},
             {"role": "user", "content": user_message}
         ],
-        tools=[{"type": "web_search_preview"}],  # 啟用網絡搜索
+        web_search_options={},  # 啟用網絡搜索
         max_tokens=1000
     )
     
