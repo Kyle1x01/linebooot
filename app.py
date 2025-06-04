@@ -97,6 +97,15 @@ def handle_message(event):
         add_to_wishlist(line_bot_api, event.reply_token, user_id, product_name)
         return
     
+    # 處理用戶選擇不添加到願望清單的情況
+    if text == "不添加":
+        help_message = get_help_message()
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text=help_message)
+        )
+        return
+    
     # 根據用戶當前狀態處理輸入
     if user_state.waiting_for_input:
         handle_user_input(event, user_state, text)
