@@ -1,6 +1,8 @@
 import os
 import json
 import datetime
+import re
+import openai
 from linebot.models import TextSendMessage, FlexSendMessage
 
 # 簡單的文件數據庫，用於存儲用戶的願望清單
@@ -29,6 +31,48 @@ def save_wishlist(user_id, wishlist):
     with open(wishlist_path, 'w', encoding='utf-8') as f:
         json.dump(wishlist, f, ensure_ascii=False, indent=2)
 
+def get_product_lowest_price(product_name):
+    """獲取產品的最低價格"""
+    try:
+        # 設定系統訊息
+        system_message = """
+        你是一個專業的3C產品價格查詢助手。請根據用戶提供的產品型號，提供該產品在台灣地區的最低價格信息。
+        
+        回覆要求：
+        1. 只提供台灣地區的商品最低價格，使用新台幣（NT$）為單位
+        2. 只返回一個數字，不要包含任何其他文字或符號
+        3. 如果找不到確切型號的價格，請返回「價格未知」
+        """
+        
+        # 設定用戶訊息
+        user_message = f"請提供{product_name}在台灣地區的最低價格，只返回數字"
+        
+        # 調用OpenAI API
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini-search-preview-2025-03-11",  # 使用支持網絡搜索的模型
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": user_message}
+            ],
+            web_search_options={},  # 啟用網絡搜索
+            max_tokens=50
+        )
+        
+        # 提取回覆內容
+        price_text = response.choices[0].message.content.strip()
+        
+        # 嘗試提取數字
+        price_match = re.search(r'\d+(?:,\d+)*', price_text)
+        if price_match:
+            # 移除逗號並轉換為整數
+            price = int(price_match.group(0).replace(',', ''))
+            return price
+        else:
+            return "價格未知"
+    except Exception as e:
+        print(f"獲取價格時發生錯誤：{str(e)}")
+        return "價格未知"
+
 def add_to_wishlist(line_bot_api, reply_token, user_id, product_info):
     """添加產品到願望清單"""
     try:
@@ -50,9 +94,13 @@ def add_to_wishlist(line_bot_api, reply_token, user_id, product_info):
                 )
                 return
         
+        # 獲取產品最低價格
+        lowest_price = get_product_lowest_price(product_name)
+        
         # 添加產品到願望清單
         wishlist.append({
             'name': product_name,
+            'lowest_price': lowest_price,
             'added_at': datetime.datetime.now().isoformat()
         })
         
@@ -60,9 +108,10 @@ def add_to_wishlist(line_bot_api, reply_token, user_id, product_info):
         save_wishlist(user_id, wishlist)
         
         # 回覆用戶
+        price_info = f"最低價格：NT${lowest_price}" if lowest_price != "價格未知" else "最低價格：未知"
         line_bot_api.reply_message(
             reply_token,
-            TextSendMessage(text=f"已將 '{product_name}' 添加到您的願望清單。")
+            TextSendMessage(text=f"已將 '{product_name}' 添加到您的願望清單。\n{price_info}\n加入時間：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}")
         )
     except Exception as e:
         error_message = f"添加到願望清單時發生錯誤：{str(e)}"
@@ -87,7 +136,22 @@ def view_wishlist(line_bot_api, reply_token, user_id):
         # 構建願望清單訊息
         wishlist_text = "🛒 您的願望清單：\n\n"
         for i, item in enumerate(wishlist, 1):
-            wishlist_text += f"{i}. {item['name']}\n"
+            # 格式化日期
+            added_date = "未知日期"
+            if 'added_at' in item:
+                try:
+                    dt = datetime.datetime.fromisoformat(item['added_at'])
+                    added_date = dt.strftime("%Y-%m-%d")
+                except:
+                    pass
+            
+            # 獲取價格信息
+            price_info = ""
+            if 'lowest_price' in item:
+                if item['lowest_price'] != "價格未知":
+                    price_info = f"NT${item['lowest_price']} | "
+            
+            wishlist_text += f"{i}. {item['name']}\n   {price_info}加入日期: {added_date}\n"
         
         wishlist_text += "\n要移除項目，請輸入「移除+產品名稱」\n要清空清單，請輸入「清空購物車」"
         

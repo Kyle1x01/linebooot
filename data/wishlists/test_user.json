@@ -1,1 +1,12 @@
-[{"name": "測試產品", "added_at": "2023-06-04T01:02:03"}]
+[
+  {
+    "name": "iPhone 15 Pro",
+    "lowest_price": 32900,
+    "added_at": "2023-06-04T01:02:03"
+  },
+  {
+    "name": "Samsung Galaxy S24",
+    "lowest_price": 25800,
+    "added_at": "2023-06-05T10:15:20"
+  }
+]
