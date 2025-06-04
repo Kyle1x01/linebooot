@@ -1,5 +1,6 @@
 import os
 import json
+import datetime
 from linebot.models import TextSendMessage, FlexSendMessage
 
 # 簡單的文件數據庫，用於存儲用戶的願望清單
@@ -52,7 +53,7 @@ def add_to_wishlist(line_bot_api, reply_token, user_id, product_info):
         # 添加產品到願望清單
         wishlist.append({
             'name': product_name,
-            'added_at': import_datetime().now().isoformat()
+            'added_at': datetime.datetime.now().isoformat()
         })
         
         # 保存願望清單
@@ -163,8 +164,3 @@ def clear_wishlist(line_bot_api, reply_token, user_id):
             reply_token,
             TextSendMessage(text=error_message)
         )
-
-def import_datetime():
-    """導入datetime模組"""
-    import datetime
-    return datetime

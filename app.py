@@ -91,6 +91,12 @@ def handle_message(event):
         clear_wishlist(line_bot_api, event.reply_token, user_id)
         return
     
+    # 處理添加到願望清單的指令
+    if text.startswith("添加到願望清單:"):
+        product_name = text[8:].strip()
+        add_to_wishlist(line_bot_api, event.reply_token, user_id, product_name)
+        return
+    
     # 根據用戶當前狀態處理輸入
     if user_state.waiting_for_input:
         handle_user_input(event, user_state, text)
