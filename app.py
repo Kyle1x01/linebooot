@@ -118,7 +118,7 @@ def handle_message(event):
             event.reply_token,
             TextSendMessage(text="請輸入您想查詢的裝置型號：")
         )
-    elif text == "我想查詢價格":
+    elif text == "查詢價格":
         user_state.set_state("price_query", waiting_for_input=True)
         line_bot_api.reply_message(
             event.reply_token,
@@ -128,7 +128,7 @@ def handle_message(event):
         user_state.set_state("product_compare", waiting_for_input=True)
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="請輸入您想比較的兩種裝置型號，以逗號分隔：")
+            TextSendMessage(text="請輸入您想比較的兩種裝置型號，以逗號分隔 ex:裝置Ａ, 裝置Ｂ")
         )
     elif text == "求推薦":
         user_state.set_state("product_recommend_type", waiting_for_input=True)
@@ -196,7 +196,7 @@ def get_help_message():
     return """🤖 3C小助手功能說明：
 
 1. 產品規格查詢: 輸入「查詢裝置」
-2. 產品價格查詢: 輸入「我想查詢價格」
+2. 產品價格查詢: 輸入「查詢價格」
 3. 產品比較: 輸入「大車拼」
 4. 推薦產品: 輸入「求推薦」
 5. 熱門排行: 輸入「金榜題名」
