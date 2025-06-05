@@ -8,5 +8,10 @@
     "name": "Samsung Galaxy S24",
     "lowest_price": 25800,
     "added_at": "2023-06-05T10:15:20"
+  },
+  {
+    "name": "Samsung Galaxy S25",
+    "lowest_price": 35800,
+    "added_at": "2023-06-05T10:15:20"
   }
 ]
