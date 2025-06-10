@@ -3,7 +3,7 @@ import json
 import re
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
-from linebot.exceptions import InvalidSignatureError
+from linebot.exceptions import InvalidSignatureError, LineBotApiError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, FlexSendMessage
 import openai
 from dotenv import load_dotenv
@@ -50,145 +50,200 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    user_id = event.source.user_id
-    text = event.message.text
-    
-    # 初始化用戶狀態（如果不存在）
-    if user_id not in user_states:
-        user_states[user_id] = UserState()
-    
-    user_state = user_states[user_id]
-    
-    # 處理「離開」指令 - 重置用戶狀態
-    if text == "離開":
-        user_state.reset()
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text="已退出當前功能。輸入「說明」查看可用指令。")
-        )
-        return
-    
-    # 處理「說明」指令
-    if text == "說明":
-        help_message = get_help_message()
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=help_message)
-        )
-        return
-    
-    # 處理願望清單相關指令
-    if text == "查看我的車車":
-        view_wishlist(line_bot_api, event.reply_token, user_id)
-        return
-    
-    if text.startswith("移除"):
-        product_name = text[2:].strip()
-        remove_from_wishlist(line_bot_api, event.reply_token, user_id, product_name)
-        return
-    
-    if text == "清空購物車":
-        clear_wishlist(line_bot_api, event.reply_token, user_id)
-        return
-    
-    # 處理添加到願望清單的指令
-    if text.startswith("添加到願望清單:"):
-        product_name = text[8:].strip()
-        add_to_wishlist(line_bot_api, event.reply_token, user_id, product_name)
-        return
-    
-    # 處理用戶選擇不添加到願望清單的情況
-    if text == "不添加":
-        help_message = get_help_message()
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=help_message)
-        )
-        return
-    
-    # 根據用戶當前狀態處理輸入
-    if user_state.waiting_for_input:
-        handle_user_input(event, user_state, text)
-        return
-    
-    # 處理功能選擇
-    if text == "查詢裝置":
-        user_state.set_state("product_query", waiting_for_input=True)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text="請輸入您想查詢的裝置型號：")
-        )
-    elif text == "查詢價格":
-        user_state.set_state("price_query", waiting_for_input=True)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text="請輸入您想查詢價格的裝置型號：")
-        )
-    elif text == "大車拼":
-        user_state.set_state("product_compare", waiting_for_input=True)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text="請輸入您想比較的兩種裝置型號，以逗號分隔 ex:裝置Ａ, 裝置Ｂ")
-        )
-    elif text == "求推薦":
-        user_state.set_state("product_recommend_type", waiting_for_input=True)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text="請輸入您想推薦的裝置類型（例如：手機、筆電、耳機等）：")
-        )
-    elif text == "金榜題名":
-        user_state.set_state("popular_ranking", waiting_for_input=True)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text="請輸入您想查詢的產品類型（例如：手機）：")
-        )
-    elif text == "評價大師":
-        user_state.set_state("product_review", waiting_for_input=True)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text="請輸入您想查詢評價的裝置型號：")
-        )
-    else:
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text="我不明白您的指令。請輸入「說明」查看可用功能。")
-        )
+    try:
+        user_id = event.source.user_id
+        text = event.message.text
+        
+        # 初始化用戶狀態（如果不存在）
+        if user_id not in user_states:
+            user_states[user_id] = UserState()
+        
+        user_state = user_states[user_id]
+        
+        # 處理「離開」指令 - 重置用戶狀態
+        if text == "離開":
+            user_state.reset()
+            try:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text="已退出當前功能。輸入「說明」查看可用指令。")
+                )
+            except LineBotApiError as e:
+                app.logger.error(f"LINE API Error: {str(e)}")
+            return
+        
+        # 處理「說明」指令
+        if text == "說明":
+            help_message = get_help_message()
+            try:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text=help_message)
+                )
+            except LineBotApiError as e:
+                app.logger.error(f"LINE API Error: {str(e)}")
+            return
+        
+        # 處理願望清單相關指令
+        if text == "查看我的車車":
+            view_wishlist(line_bot_api, event.reply_token, user_id)
+            return
+        
+        if text.startswith("移除"):
+            product_name = text[2:].strip()
+            remove_from_wishlist(line_bot_api, event.reply_token, user_id, product_name)
+            return
+        
+        if text == "清空購物車":
+            clear_wishlist(line_bot_api, event.reply_token, user_id)
+            return
+        
+        # 處理添加到願望清單的指令
+        if text.startswith("添加到願望清單:"):
+            product_name = text[8:].strip()
+            add_to_wishlist(line_bot_api, event.reply_token, user_id, product_name)
+            return
+        
+        # 處理用戶選擇不添加到願望清單的情況
+        if text == "不添加":
+            help_message = get_help_message()
+            try:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text=help_message)
+                )
+            except LineBotApiError as e:
+                app.logger.error(f"LINE API Error: {str(e)}")
+            return
+        
+        # 根據用戶當前狀態處理輸入
+        if user_state.waiting_for_input:
+            handle_user_input(event, user_state, text)
+            return
+        
+        # 處理功能選擇
+        if text == "查詢裝置":
+            user_state.set_state("product_query", waiting_for_input=True)
+            try:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text="請輸入您想查詢的裝置型號：")
+                )
+            except LineBotApiError as e:
+                app.logger.error(f"LINE API Error: {str(e)}")
+        elif text == "查詢價格":
+            user_state.set_state("price_query", waiting_for_input=True)
+            try:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text="請輸入您想查詢價格的裝置型號：")
+                )
+            except LineBotApiError as e:
+                app.logger.error(f"LINE API Error: {str(e)}")
+        elif text == "大車拼":
+            user_state.set_state("product_compare", waiting_for_input=True)
+            try:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text="請輸入您想比較的兩種裝置型號，以逗號分隔 ex:裝置Ａ, 裝置Ｂ")
+                )
+            except LineBotApiError as e:
+                app.logger.error(f"LINE API Error: {str(e)}")
+        elif text == "求推薦":
+            user_state.set_state("product_recommend_type", waiting_for_input=True)
+            try:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text="請輸入您想推薦的裝置類型（例如：手機、筆電、耳機等）：")
+                )
+            except LineBotApiError as e:
+                app.logger.error(f"LINE API Error: {str(e)}")
+        elif text == "金榜題名":
+            user_state.set_state("popular_ranking", waiting_for_input=True)
+            try:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text="請輸入您想查詢的產品類型（例如：手機）：")
+                )
+            except LineBotApiError as e:
+                app.logger.error(f"LINE API Error: {str(e)}")
+        elif text == "評價大師":
+            user_state.set_state("product_review", waiting_for_input=True)
+            try:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text="請輸入您想查詢評價的裝置型號：")
+                )
+            except LineBotApiError as e:
+                app.logger.error(f"LINE API Error: {str(e)}")
+        else:
+            try:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text="我不明白您的指令。請輸入「說明」查看可用功能。")
+                )
+            except LineBotApiError as e:
+                app.logger.error(f"LINE API Error: {str(e)}")
+    except Exception as e:
+        app.logger.error(f"Error in handle_message: {str(e)}")
+        try:
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text="處理您的請求時發生錯誤，請稍後再試。")
+            )
+        except LineBotApiError as api_error:
+            app.logger.error(f"LINE API Error in error handler: {str(api_error)}")
 
 def handle_user_input(event, user_state, text):
     """根據用戶當前狀態處理輸入"""
-    if user_state.current_state == "product_query":
-        handle_product_query(line_bot_api, event.reply_token, text)
-        # 重置用戶狀態
-        user_state.reset()
-    elif user_state.current_state == "price_query":
-        handle_price_query(line_bot_api, event.reply_token, event.source.user_id, text)
-        # 重置用戶狀態
-        user_state.reset()
-    elif user_state.current_state == "product_compare":
-        handle_product_compare(line_bot_api, event.reply_token, text)
-        # 重置用戶狀態
-        user_state.reset()
-    elif user_state.current_state == "product_recommend_type":
-        # 保存裝置類型到上下文
-        user_state.set_context("device_type", text)
-        # 更新狀態為等待需求和預算
-        user_state.set_state("product_recommend", waiting_for_input=True)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=f"請輸入您對{text}的需求和預算：")
-        )
-        # 這裡不重置用戶狀態，因為還需要等待用戶輸入需求和預算
-    elif user_state.current_state == "product_recommend":
-        handle_product_recommend(line_bot_api, event.reply_token, text, event.source.user_id)
-        # 重置用戶狀態
-        user_state.reset()
-    elif user_state.current_state == "popular_ranking":
-        handle_popular_ranking(line_bot_api, event.reply_token, text)
-        # 重置用戶狀態
-        user_state.reset()
-    elif user_state.current_state == "product_review":
-        handle_product_review(line_bot_api, event.reply_token, text)
-        # 重置用戶狀態
+    try:
+        if user_state.current_state == "product_query":
+            handle_product_query(line_bot_api, event.reply_token, text)
+            # 重置用戶狀態
+            user_state.reset()
+        elif user_state.current_state == "price_query":
+            handle_price_query(line_bot_api, event.reply_token, event.source.user_id, text)
+            # 重置用戶狀態
+            user_state.reset()
+        elif user_state.current_state == "product_compare":
+            handle_product_compare(line_bot_api, event.reply_token, text)
+            # 重置用戶狀態
+            user_state.reset()
+        elif user_state.current_state == "product_recommend_type":
+            # 保存裝置類型到上下文
+            user_state.set_context("device_type", text)
+            # 更新狀態為等待需求和預算
+            user_state.set_state("product_recommend", waiting_for_input=True)
+            try:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text=f"請輸入您對{text}的需求和預算：")
+                )
+            except LineBotApiError as e:
+                app.logger.error(f"LINE API Error in product_recommend_type: {str(e)}")
+            # 這裡不重置用戶狀態，因為還需要等待用戶輸入需求和預算
+        elif user_state.current_state == "product_recommend":
+            handle_product_recommend(line_bot_api, event.reply_token, text, event.source.user_id)
+            # 重置用戶狀態
+            user_state.reset()
+        elif user_state.current_state == "popular_ranking":
+            handle_popular_ranking(line_bot_api, event.reply_token, text)
+            # 重置用戶狀態
+            user_state.reset()
+        elif user_state.current_state == "product_review":
+            handle_product_review(line_bot_api, event.reply_token, text)
+            # 重置用戶狀態
+            user_state.reset()
+    except Exception as e:
+        app.logger.error(f"Error in handle_user_input: {str(e)}")
+        try:
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text="處理您的請求時發生錯誤，請稍後再試。")
+            )
+        except LineBotApiError as api_error:
+            app.logger.error(f"LINE API Error in handle_user_input error handler: {str(api_error)}")
+        # 重置用戶狀態以避免卡在錯誤狀態
         user_state.reset()
 
 def get_help_message():

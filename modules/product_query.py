@@ -1,6 +1,7 @@
 import os
 import openai
 from linebot.models import TextSendMessage
+from linebot.exceptions import LineBotApiError
 
 def handle_product_query(line_bot_api, reply_token, product_model):
     """處理產品規格查詢"""
@@ -9,16 +10,22 @@ def handle_product_query(line_bot_api, reply_token, product_model):
         response = call_gpt_with_web_search(product_model)
         
         # 回覆用戶
-        line_bot_api.reply_message(
-            reply_token,
-            TextSendMessage(text=response)
-        )
+        try:
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text=response)
+            )
+        except LineBotApiError as api_error:
+            print(f"LINE API Error in handle_product_query: {str(api_error)}")
     except Exception as e:
         error_message = f"查詢時發生錯誤：{str(e)}"
-        line_bot_api.reply_message(
-            reply_token,
-            TextSendMessage(text=error_message)
-        )
+        try:
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text=error_message)
+            )
+        except LineBotApiError as api_error:
+            print(f"LINE API Error in handle_product_query error handler: {str(api_error)}")
 
 def call_gpt_with_web_search(product_model):
     """調用GPT-4.1進行網絡搜索並返回產品規格"""

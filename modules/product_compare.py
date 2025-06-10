@@ -1,6 +1,7 @@
 import os
 import openai
 from linebot.models import TextSendMessage
+from linebot.exceptions import LineBotApiError
 
 def handle_product_compare(line_bot_api, reply_token, input_text):
     """處理產品比較"""
@@ -9,26 +10,35 @@ def handle_product_compare(line_bot_api, reply_token, input_text):
         products = [p.strip() for p in input_text.split(',')]
         
         if len(products) != 2:
-            line_bot_api.reply_message(
-                reply_token,
-                TextSendMessage(text="請輸入兩個產品型號，以逗號分隔。例如：iPhone 13, Samsung S21")
-            )
+            try:
+                line_bot_api.reply_message(
+                    reply_token,
+                    TextSendMessage(text="請輸入兩個產品型號，以逗號分隔。例如：iPhone 13, Samsung S21")
+                )
+            except LineBotApiError as api_error:
+                print(f"LINE API Error in handle_product_compare (invalid format): {str(api_error)}")
             return
         
         # 調用GPT-4.1進行網絡搜索
         response = call_gpt_with_web_search(products[0], products[1])
         
         # 回覆用戶
-        line_bot_api.reply_message(
-            reply_token,
-            TextSendMessage(text=response)
-        )
+        try:
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text=response)
+            )
+        except LineBotApiError as api_error:
+            print(f"LINE API Error in handle_product_compare: {str(api_error)}")
     except Exception as e:
         error_message = f"比較時發生錯誤：{str(e)}"
-        line_bot_api.reply_message(
-            reply_token,
-            TextSendMessage(text=error_message)
-        )
+        try:
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text=error_message)
+            )
+        except LineBotApiError as api_error:
+            print(f"LINE API Error in handle_product_compare error handler: {str(api_error)}")
 
 def call_gpt_with_web_search(product1, product2):
     """調用GPT-4.1進行網絡搜索並返回產品比較"""

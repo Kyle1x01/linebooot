@@ -4,6 +4,7 @@ import datetime
 import re
 import openai
 from linebot.models import TextSendMessage, FlexSendMessage
+from linebot.exceptions import LineBotApiError
 
 # 簡單的文件數據庫，用於存儲用戶的願望清單
 WISHLIST_DIR = "data/wishlists"
@@ -95,10 +96,13 @@ def add_to_wishlist(line_bot_api, reply_token, user_id, product_info):
         # 檢查產品是否已在清單中
         for item in wishlist:
             if item.get('name') == product_name:
-                line_bot_api.reply_message(
-                    reply_token,
-                    TextSendMessage(text=f"產品 '{product_name}' 已在您的願望清單中。")
-                )
+                try:
+                    line_bot_api.reply_message(
+                        reply_token,
+                        TextSendMessage(text=f"產品 '{product_name}' 已在您的願望清單中。")
+                    )
+                except LineBotApiError as e:
+                    print(f"LINE API Error in add_to_wishlist (duplicate check): {str(e)}")
                 return
         
         # 獲取產品最低價格
@@ -106,10 +110,13 @@ def add_to_wishlist(line_bot_api, reply_token, user_id, product_info):
         
         # 檢查是否為非3C產品
         if lowest_price == "非3C產品":
-            line_bot_api.reply_message(
-                reply_token,
-                TextSendMessage(text=f"很抱歉，我只能將3C電子產品添加到願望清單。請嘗試添加電腦、手機、平板、相機、耳機、智能手錶等電子產品。")
-            )
+            try:
+                line_bot_api.reply_message(
+                    reply_token,
+                    TextSendMessage(text=f"很抱歉，我只能將3C電子產品添加到願望清單。請嘗試添加電腦、手機、平板、相機、耳機、智能手錶等電子產品。")
+                )
+            except LineBotApiError as e:
+                print(f"LINE API Error in add_to_wishlist (non-3C product): {str(e)}")
             return
         
         # 添加產品到願望清單
@@ -123,16 +130,22 @@ def add_to_wishlist(line_bot_api, reply_token, user_id, product_info):
         save_wishlist(user_id, wishlist)
         
         # 回覆用戶
-        line_bot_api.reply_message(
-            reply_token,
-            TextSendMessage(text=f"已將 '{product_name}' 添加到您的願望清單。")
-        )
+        try:
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text=f"已將 '{product_name}' 添加到您的願望清單。")
+            )
+        except LineBotApiError as e:
+            print(f"LINE API Error in add_to_wishlist (success reply): {str(e)}")
     except Exception as e:
         error_message = f"添加到願望清單時發生錯誤：{str(e)}"
-        line_bot_api.reply_message(
-            reply_token,
-            TextSendMessage(text=error_message)
-        )
+        try:
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text=error_message)
+            )
+        except LineBotApiError as api_error:
+            print(f"LINE API Error in add_to_wishlist error handler: {str(api_error)}")
 
 def view_wishlist(line_bot_api, reply_token, user_id):
     """查看願望清單"""
@@ -141,10 +154,13 @@ def view_wishlist(line_bot_api, reply_token, user_id):
         wishlist = load_wishlist(user_id)
         
         if not wishlist:
-            line_bot_api.reply_message(
-                reply_token,
-                TextSendMessage(text="您的願望清單是空的。")
-            )
+            try:
+                line_bot_api.reply_message(
+                    reply_token,
+                    TextSendMessage(text="您的願望清單是空的。")
+                )
+            except LineBotApiError as e:
+                print(f"LINE API Error in view_wishlist (empty list): {str(e)}")
             return
         
         # 構建願望清單訊息
@@ -170,16 +186,22 @@ def view_wishlist(line_bot_api, reply_token, user_id):
         wishlist_text += "\n要移除項目，請輸入「移除+產品名稱」\n要清空清單，請輸入「清空購物車」"
         
         # 回覆用戶
-        line_bot_api.reply_message(
-            reply_token,
-            TextSendMessage(text=wishlist_text)
-        )
+        try:
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text=wishlist_text)
+            )
+        except LineBotApiError as e:
+            print(f"LINE API Error in view_wishlist (display list): {str(e)}")
     except Exception as e:
         error_message = f"查看願望清單時發生錯誤：{str(e)}"
-        line_bot_api.reply_message(
-            reply_token,
-            TextSendMessage(text=error_message)
-        )
+        try:
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text=error_message)
+            )
+        except LineBotApiError as api_error:
+            print(f"LINE API Error in view_wishlist error handler: {str(api_error)}")
 
 def remove_from_wishlist(line_bot_api, reply_token, user_id, product_name):
     """從願望清單中移除產品"""
@@ -188,10 +210,13 @@ def remove_from_wishlist(line_bot_api, reply_token, user_id, product_name):
         wishlist = load_wishlist(user_id)
         
         if not wishlist:
-            line_bot_api.reply_message(
-                reply_token,
-                TextSendMessage(text="您的願望清單是空的。")
-            )
+            try:
+                line_bot_api.reply_message(
+                    reply_token,
+                    TextSendMessage(text="您的願望清單是空的。")
+                )
+            except LineBotApiError as e:
+                print(f"LINE API Error in remove_from_wishlist (empty list): {str(e)}")
             return
         
         # 尋找並移除產品
@@ -204,26 +229,35 @@ def remove_from_wishlist(line_bot_api, reply_token, user_id, product_name):
                 new_wishlist.append(item)
         
         if not found:
-            line_bot_api.reply_message(
-                reply_token,
-                TextSendMessage(text=f"未在您的願望清單中找到 '{product_name}'。")
-            )
+            try:
+                line_bot_api.reply_message(
+                    reply_token,
+                    TextSendMessage(text=f"未在您的願望清單中找到 '{product_name}'。")
+                )
+            except LineBotApiError as e:
+                print(f"LINE API Error in remove_from_wishlist (not found): {str(e)}")
             return
         
         # 保存更新後的願望清單
         save_wishlist(user_id, new_wishlist)
         
         # 回覆用戶
-        line_bot_api.reply_message(
-            reply_token,
-            TextSendMessage(text=f"已從您的願望清單中移除 '{product_name}'。")
-        )
+        try:
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text=f"已從您的願望清單中移除 '{product_name}'。")
+            )
+        except LineBotApiError as e:
+            print(f"LINE API Error in remove_from_wishlist (success reply): {str(e)}")
     except Exception as e:
         error_message = f"移除願望清單項目時發生錯誤：{str(e)}"
-        line_bot_api.reply_message(
-            reply_token,
-            TextSendMessage(text=error_message)
-        )
+        try:
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text=error_message)
+            )
+        except LineBotApiError as api_error:
+            print(f"LINE API Error in remove_from_wishlist error handler: {str(api_error)}")
 
 def clear_wishlist(line_bot_api, reply_token, user_id):
     """清空願望清單"""
@@ -232,13 +266,19 @@ def clear_wishlist(line_bot_api, reply_token, user_id):
         save_wishlist(user_id, [])
         
         # 回覆用戶
-        line_bot_api.reply_message(
-            reply_token,
-            TextSendMessage(text="已清空您的願望清單。")
-        )
+        try:
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text="已清空您的願望清單。")
+            )
+        except LineBotApiError as e:
+            print(f"LINE API Error in clear_wishlist (success reply): {str(e)}")
     except Exception as e:
         error_message = f"清空願望清單時發生錯誤：{str(e)}"
-        line_bot_api.reply_message(
-            reply_token,
-            TextSendMessage(text=error_message)
-        )
+        try:
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text=error_message)
+            )
+        except LineBotApiError as api_error:
+            print(f"LINE API Error in clear_wishlist error handler: {str(api_error)}")
