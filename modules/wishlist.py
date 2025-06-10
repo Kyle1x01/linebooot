@@ -42,6 +42,9 @@ def get_product_lowest_price(product_name):
         1. 只提供台灣地區的商品最低價格，使用新台幣（NT$）為單位
         2. 只返回一個數字，不要包含任何其他文字或符號
         3. 如果找不到確切型號的價格，請返回「價格未知」
+        4. 重要：只回覆與3C產品（電腦、手機、平板、相機、耳機、智能手錶等電子產品）相關的內容
+        5. 如果用戶查詢的不是3C產品，請返回「非3C產品」
+        6. 在回答前，請先判斷查詢的產品是否為3C產品，如果不是，則返回上述訊息
         """
         
         # 設定用戶訊息
@@ -60,6 +63,10 @@ def get_product_lowest_price(product_name):
         
         # 提取回覆內容
         price_text = response.choices[0].message.content.strip()
+        
+        # 檢查是否為非3C產品
+        if price_text == "非3C產品":
+            return "非3C產品"
         
         # 嘗試提取數字
         price_match = re.search(r'\d+(?:,\d+)*', price_text)
@@ -97,21 +104,28 @@ def add_to_wishlist(line_bot_api, reply_token, user_id, product_info):
         # 獲取產品最低價格
         lowest_price = get_product_lowest_price(product_name)
         
+        # 檢查是否為非3C產品
+        if lowest_price == "非3C產品":
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text=f"很抱歉，我只能將3C電子產品添加到願望清單。請嘗試添加電腦、手機、平板、相機、耳機、智能手錶等電子產品。")
+            )
+            return
+        
         # 添加產品到願望清單
         wishlist.append({
             'name': product_name,
             'lowest_price': lowest_price,
-            'added_at': datetime.datetime.now().isoformat()
+            'added_date': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
         
         # 保存願望清單
         save_wishlist(user_id, wishlist)
         
         # 回覆用戶
-        price_info = f"最低價格：NT${lowest_price}" if lowest_price != "價格未知" else "最低價格：未知"
         line_bot_api.reply_message(
             reply_token,
-            TextSendMessage(text=f"已將 '{product_name}' 添加到您的願望清單。\n{price_info}\n加入時間：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}")
+            TextSendMessage(text=f"已將 '{product_name}' 添加到您的願望清單。")
         )
     except Exception as e:
         error_message = f"添加到願望清單時發生錯誤：{str(e)}"
