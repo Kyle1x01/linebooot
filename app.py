@@ -60,6 +60,14 @@ def handle_message(event):
         
         user_state = user_states[user_id]
         
+        # 檢查用戶狀態是否過期（30分鐘無活動）
+        if user_state.is_expired():
+            app.logger.info(f"User {user_id} state expired, resetting")
+            user_state.reset()
+        else:
+            # 更新最後活動時間
+            user_state.update_activity_time()
+        
         # 處理「離開」指令 - 重置用戶狀態
         if text == "離開":
             user_state.reset()
@@ -70,6 +78,11 @@ def handle_message(event):
                 )
             except LineBotApiError as e:
                 app.logger.error(f"LINE API Error: {str(e)}")
+                # 檢查是否為 reply token 過期錯誤
+                if "Invalid reply token" in str(e):
+                    app.logger.warning(f"Reply token expired for user {user_id}")
+                    # 這裡可以考慮使用 push message 作為備選方案
+                    # line_bot_api.push_message(user_id, TextSendMessage(text="已退出當前功能。輸入「說明」查看可用指令。"))
             return
         
         # 處理「說明」指令
@@ -131,6 +144,11 @@ def handle_message(event):
                 )
             except LineBotApiError as e:
                 app.logger.error(f"LINE API Error: {str(e)}")
+                # 檢查是否為 reply token 過期錯誤
+                if "Invalid reply token" in str(e):
+                    app.logger.warning(f"Reply token expired for user {user_id}")
+                    # 這裡可以考慮使用 push message 作為備選方案
+                    # line_bot_api.push_message(user_id, TextSendMessage(text="請輸入您想查詢的裝置型號："))
         elif text == "查詢價格":
             user_state.set_state("price_query", waiting_for_input=True)
             try:
@@ -140,6 +158,11 @@ def handle_message(event):
                 )
             except LineBotApiError as e:
                 app.logger.error(f"LINE API Error: {str(e)}")
+                # 檢查是否為 reply token 過期錯誤
+                if "Invalid reply token" in str(e):
+                    app.logger.warning(f"Reply token expired for user {user_id}")
+                    # 這裡可以考慮使用 push message 作為備選方案
+                    # line_bot_api.push_message(user_id, TextSendMessage(text="請輸入您想查詢價格的裝置型號："))
         elif text == "大車拼":
             user_state.set_state("product_compare", waiting_for_input=True)
             try:
@@ -149,6 +172,11 @@ def handle_message(event):
                 )
             except LineBotApiError as e:
                 app.logger.error(f"LINE API Error: {str(e)}")
+                # 檢查是否為 reply token 過期錯誤
+                if "Invalid reply token" in str(e):
+                    app.logger.warning(f"Reply token expired for user {user_id}")
+                    # 這裡可以考慮使用 push message 作為備選方案
+                    # line_bot_api.push_message(user_id, TextSendMessage(text="請輸入您想比較的兩種裝置型號，以逗號分隔 ex:裝置Ａ, 裝置Ｂ"))
         elif text == "求推薦":
             user_state.set_state("product_recommend_type", waiting_for_input=True)
             try:
@@ -158,6 +186,11 @@ def handle_message(event):
                 )
             except LineBotApiError as e:
                 app.logger.error(f"LINE API Error: {str(e)}")
+                # 檢查是否為 reply token 過期錯誤
+                if "Invalid reply token" in str(e):
+                    app.logger.warning(f"Reply token expired for user {user_id}")
+                    # 這裡可以考慮使用 push message 作為備選方案
+                    # line_bot_api.push_message(user_id, TextSendMessage(text="請輸入您想推薦的裝置類型（例如：手機、筆電、耳機等）："))
         elif text == "金榜題名":
             user_state.set_state("popular_ranking", waiting_for_input=True)
             try:
@@ -167,6 +200,11 @@ def handle_message(event):
                 )
             except LineBotApiError as e:
                 app.logger.error(f"LINE API Error: {str(e)}")
+                # 檢查是否為 reply token 過期錯誤
+                if "Invalid reply token" in str(e):
+                    app.logger.warning(f"Reply token expired for user {user_id}")
+                    # 這裡可以考慮使用 push message 作為備選方案
+                    # line_bot_api.push_message(user_id, TextSendMessage(text="請輸入您想查詢的產品類型（例如：手機）："))
         elif text == "評價大師":
             user_state.set_state("product_review", waiting_for_input=True)
             try:
@@ -176,6 +214,11 @@ def handle_message(event):
                 )
             except LineBotApiError as e:
                 app.logger.error(f"LINE API Error: {str(e)}")
+                # 檢查是否為 reply token 過期錯誤
+                if "Invalid reply token" in str(e):
+                    app.logger.warning(f"Reply token expired for user {user_id}")
+                    # 這裡可以考慮使用 push message 作為備選方案
+                    # line_bot_api.push_message(user_id, TextSendMessage(text="請輸入您想查詢評價的裝置型號："))
         else:
             try:
                 line_bot_api.reply_message(
@@ -184,6 +227,11 @@ def handle_message(event):
                 )
             except LineBotApiError as e:
                 app.logger.error(f"LINE API Error: {str(e)}")
+                # 檢查是否為 reply token 過期錯誤
+                if "Invalid reply token" in str(e):
+                    app.logger.warning(f"Reply token expired for user {user_id}")
+                    # 這裡可以考慮使用 push message 作為備選方案
+                    # line_bot_api.push_message(user_id, TextSendMessage(text="我不明白您的指令。請輸入「說明」查看可用功能。"))
     except Exception as e:
         app.logger.error(f"Error in handle_message: {str(e)}")
         try:
@@ -193,6 +241,11 @@ def handle_message(event):
             )
         except LineBotApiError as api_error:
             app.logger.error(f"LINE API Error in error handler: {str(api_error)}")
+            # 檢查是否為 reply token 過期錯誤
+            if "Invalid reply token" in str(api_error):
+                app.logger.warning(f"Reply token expired for user {user_id}")
+                # 這裡可以考慮使用 push message 作為備選方案
+                # line_bot_api.push_message(user_id, TextSendMessage(text="處理您的請求時發生錯誤，請稍後再試。"))
 
 def handle_user_input(event, user_state, text):
     """根據用戶當前狀態處理輸入"""
@@ -221,6 +274,11 @@ def handle_user_input(event, user_state, text):
                 )
             except LineBotApiError as e:
                 app.logger.error(f"LINE API Error in product_recommend_type: {str(e)}")
+                # 檢查是否為 reply token 過期錯誤
+                if "Invalid reply token" in str(e):
+                    app.logger.warning(f"Reply token expired for user {event.source.user_id}")
+                    # 這裡可以考慮使用 push message 作為備選方案
+                    # line_bot_api.push_message(event.source.user_id, TextSendMessage(text=f"請輸入您對{text}的需求和預算："))
             # 這裡不重置用戶狀態，因為還需要等待用戶輸入需求和預算
         elif user_state.current_state == "product_recommend":
             handle_product_recommend(line_bot_api, event.reply_token, text, event.source.user_id)
@@ -243,6 +301,11 @@ def handle_user_input(event, user_state, text):
             )
         except LineBotApiError as api_error:
             app.logger.error(f"LINE API Error in handle_user_input error handler: {str(api_error)}")
+            # 檢查是否為 reply token 過期錯誤
+            if "Invalid reply token" in str(api_error):
+                app.logger.warning(f"Reply token expired for user {event.source.user_id}")
+                # 這裡可以考慮使用 push message 作為備選方案
+                # line_bot_api.push_message(event.source.user_id, TextSendMessage(text="處理您的請求時發生錯誤，請稍後再試。"))
         # 重置用戶狀態以避免卡在錯誤狀態
         user_state.reset()
 

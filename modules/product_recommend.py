@@ -26,6 +26,16 @@ def handle_product_recommend(line_bot_api, reply_token, input_text, user_id=None
             )
         except LineBotApiError as api_error:
             print(f"LINE API Error when replying: {str(api_error)}")
+            # 檢查是否為 reply token 過期錯誤
+            if "Invalid reply token" in str(api_error):
+                print(f"Reply token expired for user {user_id}")
+                # 如果 reply token 過期，嘗試使用 push message
+                if user_id:
+                    try:
+                        line_bot_api.push_message(user_id, TextSendMessage(text=response))
+                        print(f"Sent push message to user {user_id} as fallback")
+                    except LineBotApiError as push_error:
+                        print(f"Failed to send push message: {str(push_error)}")
     except Exception as e:
         error_message = f"推薦時發生錯誤：{str(e)}"
         try:
@@ -35,6 +45,16 @@ def handle_product_recommend(line_bot_api, reply_token, input_text, user_id=None
             )
         except LineBotApiError as api_error:
             print(f"LINE API Error in error handler: {str(api_error)}")
+            # 檢查是否為 reply token 過期錯誤
+            if "Invalid reply token" in str(api_error):
+                print(f"Reply token expired for user {user_id}")
+                # 如果 reply token 過期，嘗試使用 push message
+                if user_id:
+                    try:
+                        line_bot_api.push_message(user_id, TextSendMessage(text=error_message))
+                        print(f"Sent push message to user {user_id} as fallback")
+                    except LineBotApiError as push_error:
+                        print(f"Failed to send push message: {str(push_error)}")
 
 def call_gpt_with_web_search(user_requirements, device_type=None):
     """調用GPT-4.1進行網絡搜索並返回產品推薦"""
