@@ -58,6 +58,10 @@ def handle_product_recommend(line_bot_api, reply_token, input_text, user_id=None
 
 def call_gpt_with_web_search(user_requirements, device_type=None):
     """調用GPT-4.1進行網絡搜索並返回產品推薦"""
+    # 如果沒有設備類型，直接提示用戶重新輸入
+    if device_type is None:
+        return "請先指定您想要推薦的裝置類型（例如：手機、筆電、耳機等）。請輸入「求推薦」重新開始。"
+    
     # 設定重試參數
     max_retries = 3
     retry_delay = 2  # 秒
@@ -85,8 +89,9 @@ def call_gpt_with_web_search(user_requirements, device_type=None):
     # 設定用戶訊息
     if device_type:
         # 確保查詢明確要求多樣化推薦
-        user_message = f"請推薦適合的{device_type}，根據以下需求和預算：{user_requirements}。請提供至少3種不同品牌的選擇。請先判斷{device_type}是否為3C產品，如果不是，請回覆相應的錯誤訊息。"
+        user_message = f"請推薦{device_type}，根據以下需求和預算：{user_requirements}。請提供至少3種不同的選擇。請先判斷{device_type}是否為3C產品，如果不是，請回覆相應的錯誤訊息。"
     else:
+        # 當沒有指定設備類型時
         user_message = f"根據以下需求和預算，請推薦適合的3C產品：{user_requirements}。請提供至少3種不同品牌的選擇。請先判斷是否為3C產品相關查詢，如果不是，請回覆相應的錯誤訊息。"
     
     # 重試機制
